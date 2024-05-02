@@ -62,7 +62,7 @@
         }
     },
     "variables": {
-        "loganalyticslocation": "westeurope",
+        "monitorLocation": "westeurope",
         "automationlocation": "westeurope",
         "backupRgName": "[concat(parameters('prefix'),'-backup-rg')]",
         "vaultName": "[concat(parameters('prefix'),'-backup-lrs')]",
@@ -89,7 +89,7 @@
         "SubnetWANName": "[concat(parameters('prefix'),'-wan-subnet')]",
         "NSGName": "[concat(parameters('prefix'),'-nsg')]",
         "SecurityRgName": "[concat(parameters('prefix'),'-security-rg')]",
-        "workspaceName": "[concat(parameters('prefix'),'-loganalytics')]",
+        "workspaceName": "[concat(parameters('prefix'),'-monitor')]",
         "UpdateRgName": "[concat(parameters('prefix'),'-update-rg')]",
         "updateAutomationAccountName": "[concat(parameters('prefix'),'-update-automation')]",
         "udpateScheduleFrequency": "Week",
@@ -199,7 +199,7 @@
             "type": "Microsoft.Resources/resourceGroups",
             "apiVersion": "2020-06-01",
             "name": "[variables('SecurityRgName')]",
-            "location": "[variables('loganalyticslocation')]",
+            "location": "[variables('monitorLocation')]",
             "properties": {}
         },
         {
@@ -1029,7 +1029,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
-            "name": "createloganalytics",
+            "name": "createmonitor",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/resourceGroups', variables('UpdateRgName'))]",
                 "[resourceId('Microsoft.Resources/resourceGroups', variables('SecurityRgName'))]",
@@ -1042,7 +1042,7 @@
                 },
                 "parameters": {
                     "location": {
-                        "value": "[variables('loganalyticslocation')]"
+                        "value": "[variables('monitorLocation')]"
                     },
                     "tags": {
                         "value": "[parameters('tags')]"
@@ -1338,7 +1338,7 @@
             "apiVersion": "2017-08-01-preview",
             "name": "default",
             "dependsOn": [
-                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',variables('securityRgName'),'/providers/Microsoft.Resources/deployments/createloganalytics')]"
+                "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',variables('securityRgName'),'/providers/Microsoft.Resources/deployments/createmonitor')]"
             ],
             "properties": {
                 "scope": "[subscription().id]",
