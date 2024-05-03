@@ -59,7 +59,17 @@
         "DeployUpdateAutomationScope": {
             "type": "bool",
             "defaultValue": false
+        },
+        "publicNetworkAccess": {
+            "type": "string"
+        },
+        "privateEndpoints": {
+            "type": "array"
+        },
+        "privateLinkEndpoint": {
+            "type": "string"
         }
+
     },
     "variables": {
         "monitorLocation": "westeurope",
@@ -89,7 +99,8 @@
         "SubnetWANName": "[concat(parameters('prefix'),'-wan-subnet')]",
         "NSGName": "[concat(parameters('prefix'),'-nsg')]",
         "SecurityRgName": "[concat(parameters('prefix'),'-security-rg')]",
-        "workspaceName": "[concat(parameters('prefix'),'-monitor')]",
+        "monitorName": "[concat(parameters('prefix'),'-monitor')]",
+        "workspaceName": "[concat(parameters('prefix'),'-monitorWorkspace')]",
         "UpdateRgName": "[concat(parameters('prefix'),'-update-rg')]",
         "updateAutomationAccountName": "[concat(parameters('prefix'),'-update-automation')]",
         "udpateScheduleFrequency": "Week",
@@ -1088,246 +1099,161 @@
                         "location": "[parameters('location')]"
                     },
                     "resources": [
-                        {
-                            "type": "microsoft.operationalinsights/workspaces",
-                            "apiVersion": "2020-10-01",
-                            "name": "[parameters('workspaceName')]",
-                            "location": "[variables('location')]",
-                            "tags": "[parameters('tags')]",
-                            "properties": {
-                                "sku": {
-                                    "name": "PerGB2018"
-                                }
-                            }
-                        },
-                        {
-                            "type": "microsoft.operationalinsights/workspaces/linkedservices",
-                            "apiVersion": "2020-08-01",
-                            "condition": "[if(not(equals(parameters('location'),'germanywestcentral')),true(),false())]",
-                            "name": "[concat(parameters('workspaceName'), '/Automation')]",
-                            "dependsOn": [
-                                "[resourceId('microsoft.operationalinsights/workspaces', parameters('workspaceName'))]"
-                            ],
-                            "properties": {
-                                "resourceId": "[resourceId(parameters('updateAutomationAccountRgName'), 'Microsoft.Automation/automationAccounts', parameters('updateAutomationAccountName'))]"
-                            }
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/savedSearches",
-                            "apiVersion": "2020-08-01",
-                            "name": "[concat(parameters('workspaceName'), '/updates|microsoftdefaultcomputergroup')]",
-                            "condition": "[parameters('DeployUpdateAutomationScope')]",
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ],
-                            "properties": {
-                                "etag": "*",
-                                "category": "Updates",
-                                "displayName": "MicrosoftDefaultComputerGroup",
-                                "query": "Heartbeat | where Computer in~ (\"\") or VMUUID in~ (\"\") | distinct Computer",
-                                "tags": [
-                                    {
-                                        "name": "Group",
-                                        "value": "Computer"
-                                    }
-                                ],
-                                "functionAlias": "Updates__MicrosoftDefaultComputerGroup"
-                            }
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/configurationScopes",
-                            "apiVersion": "2015-11-01-preview",
-                            "name": "[concat(parameters('workspaceName'), '/MicrosoftDefaultScopeConfig-Updates')]",
-                            "condition": "[parameters('DeployUpdateAutomationScope')]",
-                            "location": "[variables('location')]",
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ],
-                            "kind": "SearchComputerGroup",
-                            "properties": {
-                                "Include": [
-                                    "Updates__MicrosoftDefaultComputerGroup"
-                                ]
-                            }
-                        },
-                        {
-                            "type": "Microsoft.OperationsManagement/solutions",
-                            "apiVersion": "2015-11-01-preview",
-                            "name": "[concat('SecurityCenterFree(', parameters('workspaceName'), ')')]",
-                            "location": "[variables('location')]",
-                            "dependsOn": [
-                                "[resourceId('microsoft.operationalinsights/workspaces', parameters('workspaceName'))]"
-                            ],
-                            "tags": "[parameters('tags')]",
-                            "plan": {
-                                "name": "[concat('SecurityCenterFree(', parameters('workspaceName'), ')')]",
-                                "product": "OMSGallery/SecurityCenterFree",
-                                "promotionCode": "",
-                                "publisher": "Microsoft"
-                            },
-                            "properties": {
-                                "workspaceResourceId": "[resourceId('microsoft.operationalinsights/workspaces', parameters('workspaceName'))]"
-                            }
-                        },
-                        {
-                            "type": "Microsoft.OperationsManagement/solutions",
-                            "apiVersion": "2015-11-01-preview",
-                            "name": "[concat('Updates(', parameters('workspaceName'), ')')]",
-                            "location": "[variables('location')]",
-                            "dependsOn": [
-                                "[resourceId('microsoft.operationalinsights/workspaces', parameters('workspaceName'))]"
-                            ],
-                            "tags": "[parameters('tags')]",
-                            "plan": {
-                                "name": "[concat('Updates(', parameters('workspaceName'), ')')]",
-                                "product": "OMSGallery/Updates",
-                                "promotionCode": "",
-                                "publisher": "Microsoft"
-                            },
-                            "properties": {
-                                "workspaceResourceId": "[resourceId('microsoft.operationalinsights/workspaces', parameters('workspaceName'))]",
-                                "configurations": "[if(parameters('DeployUpdateAutomationScope'),json('[{\"Name\": \"SolutionTargeting\",\"Value\": \"MicrosoftDefaultScopeConfig-Updates\"}]'),json('null'))]"
-                            }
-                        },
+                       {
 
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'WindowsPerfProcessorPercentage')]",
-                            "kind": "WindowsPerformanceCounter",
-                            "properties": {
-                                "objectName": "Processor",
-                                "instanceName": "_Total",
-                                "intervalSeconds": 60,
-                                "counterName": "% Processor Time"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'WindowsPerfLogDiskFreeSpace')]",
-                            "kind": "WindowsPerformanceCounter",
-                            "properties": {
-                                "objectName": "LogicalDisk",
-                                "instanceName": "*",
-                                "intervalSeconds": 300,
-                                "counterName": "% Free Space"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'WindowsPerfLogDiskFreeMb')]",
-                            "kind": "WindowsPerformanceCounter",
-                            "properties": {
-                                "objectName": "LogicalDisk",
-                                "instanceName": "*",
-                                "intervalSeconds": 300,
-                                "counterName": "Free Megabytes"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'WindowsPerfMemBytesUsed')]",
-                            "kind": "WindowsPerformanceCounter",
-                            "properties": {
-                                "objectName": "Memory",
-                                "instanceName": "*",
-                                "intervalSeconds": 60,
-                                "counterName": "% Committed Bytes In Use"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'WindowsPerfMemAvailMbytes')]",
-                            "kind": "WindowsPerformanceCounter",
-                            "properties": {
-                                "objectName": "Memory",
-                                "instanceName": "*",
-                                "intervalSeconds": 60,
-                                "counterName": "Available MBytes"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'LinuxPerformanceLogicalDisk')]",
-                            "kind": "LinuxPerformanceObject",
-                            "properties": {
-                                "objectName": "Logical Disk",
-                                "instanceName": "*",
-                                "intervalSeconds": 60,
-                                "performanceCounters": [
-                                    {
-                                        "counterName": "% Free Space"
-                                    },
-                                    {
-                                        "counterName": "Free Megabytes"
-                                    }
-                                ]
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'LinuxPerformanceMemory')]",
-                            "kind": "LinuxPerformanceObject",
-                            "properties": {
-                                "objectName": "Memory",
-                                "instanceName": "*",
-                                "intervalSeconds": 60,
-                                "performanceCounters": [
-                                    {
-                                        "counterName": "% Used Memory"
-                                    },
-                                    {
-                                        "counterName": "Available MBytes Memory"
-                                    }
-                                ]
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
-                        },
-                        {
-                            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
-                            "apiVersion": "2020-08-01",
-                            "name": "[format('{0}/{1}', parameters('workspaceName'), 'LinuxPerformanceProcessor')]",
-                            "kind": "LinuxPerformanceObject",
-                            "properties": {
-                                "objectName": "Processor",
-                                "instanceName": "*",
-                                "intervalSeconds": 60,
-                                "performanceCounters": [
-                                    {
-                                        "counterName": "% Processor Time"
-                                    }
-                                ]
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
-                            ]
+                        "apiVersion": "2023-04-03",
+                        "name": "[variables('monitorName')]",
+                        "location": "[variables('location')]",
+                        "type": "microsoft.monitor/accounts",
+                        "tags": "[ if(contains(parameters('tagsByResource'), 'microsoft.monitor/accounts'), parameters('tagsByResource')['microsoft.monitor/accounts'], json('{}')) ]",
+                        "properties": {
+                            "publicNetworkAccess": "[ parameters('publicNetworkAccess') ]"
                         }
+                    },
+                    {
+                        "condition": "[and(equals(parameters('publicNetworkAccess'),'Disabled'), equals(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.mode, 1))]",
+                        "apiVersion": "2018-05-01",
+                        "name": "[concat('deployResourceGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]",
+                        "type": "Microsoft.Resources/deployments",
+                        "subscriptionId": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
+                        "location": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
+                        "dependsOn": [
+                            "[parameters('name')]"
+                        ],
+                        "copy": {
+                            "name": "privateendpointscopy",
+                            "count": "[length(parameters('privateEndpoints'))]"
+                        },
+                        "properties": {
+                            "mode": "Incremental",
+                            "template": {
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "contentVersion": "1.0.0.0",
+                                "resources": [
+                                    {
+                                        "type": "Microsoft.Resources/resourceGroups",
+                                        "apiVersion": "2021-04-01",
+                                        "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
+                                        "location": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
+                                        "properties": {}
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "apiVersion": "2017-05-10",
+                        "name": "[concat('deployPrivateEndpoint-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
+                        "type": "Microsoft.Resources/deployments",
+                        "resourceGroup": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
+                        "subscriptionId": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
+                        "dependsOn": [
+                            "[parameters('name')]",
+                            "[concat('deployResourceGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]"
+                        ],
+                        "condition": "[equals(parameters('publicNetworkAccess'),'Disabled')]",
+                        "copy": {
+                            "name": "privateendpointscopy",
+                            "count": "[length(parameters('privateEndpoints'))]"
+                        },
+                        "properties": {
+                            "mode": "Incremental",
+                            "template": {
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "contentVersion": "1.0.0.0",
+                                "resources": [
+                                    {
+                                        "location": "[parameters('location')]",
+                                        "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
+                                        "type": "Microsoft.Network/privateEndpoints",
+                                        "apiVersion": "2020-03-01",
+                                        "properties": {
+                                            "subnet": {
+                                                "id": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id]"
+                                            },
+                                            "privateLinkServiceConnections": [
+                                                {
+                                                    "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
+                                                    "properties": {
+                                                        "privateLinkServiceId": "[concat(parameters('resourceGroupId'), '/providers/microsoft.monitor/accounts/', parameters('name'))]",
+                                                        "groupIds": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.privateLinkServiceConnections[0].properties.groupIds]"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "tags": {}
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "apiVersion": "2017-05-10",
+                        "name": "[concat('deployDnsZoneGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
+                        "type": "Microsoft.Resources/deployments",
+                        "resourceGroup": "[split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4]]",
+                        "subscriptionId": "[split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2]]",
+                        "dependsOn": [
+                            "[concat('Microsoft.Resources/deployments/', concat('deployPrivateEndpoint-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name))]"
+                        ],
+                        "condition": "[and(equals(parameters('publicNetworkAccess'),'Disabled'), parameters('privateEndpoints')[copyIndex()].privateDnsZoneConfiguration.integrateWithPrivateDnsZone)]",
+                        "copy": {
+                            "name": "privateendpointdnscopy",
+                            "count": "[length(parameters('privateEndpoints'))]"
+                        },
+                        "properties": {
+                            "mode": "Incremental",
+                            "template": {
+                                "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                                "contentVersion": "1.0.0.0",
+                                "resources": [
+                                    {
+                                        "type": "Microsoft.Network/privateDnsZones",
+                                        "apiVersion": "2018-09-01",
+                                        "name": "[concat('privatelink.',parameters('location'),parameters('privateLinkEndpoint'))]",
+                                        "location": "global",
+                                        "tags": {},
+                                        "properties": {}
+                                    },
+                                    {
+                                        "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+                                        "apiVersion": "2018-09-01",
+                                        "name": "[concat('privatelink.',parameters('location'),parameters('privateLinkEndpoint'), '/', uniquestring(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id, ''))]",
+                                        "location": "global",
+                                        "dependsOn": [
+                                            "[concat('privatelink.',parameters('location'),parameters('privateLinkEndpoint'))]"
+                                        ],
+                                        "properties": {
+                                            "virtualNetwork": {
+                                                "id": "[concat('/subscriptions/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourceGroups/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4],'/providers/Microsoft.Network/virtualNetworks/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[8])]"
+                                            },
+                                            "registrationEnabled": false
+                                        }
+                                    },
+                                    {
+                                        "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                                        "apiVersion": "2020-03-01",
+                                        "name": "[concat(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name, '/default')]",
+                                        "location": "[parameters('location')]",
+                                        "dependsOn": [
+                                            "[concat('privatelink.',parameters('location'),parameters('privateLinkEndpoint'))]"
+                                        ],
+                                        "properties": {
+                                            "privateDnsZoneConfigs": [
+                                                {
+                                                    "name": "[concat('privatelink.',parameters('location'),parameters('privateLinkEndpoint'))]",
+                                                    "properties": {
+                                                        "privateDnsZoneId": "[concat('/subscriptions/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourcegroups/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4], '/providers/Microsoft.Network/privateDnsZones/privatelink.',parameters('location'),parameters('privateLinkEndpoint'))]"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+             
                     ]
                 }
             },
@@ -1868,6 +1794,7 @@
             },
             "resourceGroup": "[variables('vnetRgName')]"
         }
+        
     ],
     "outputs": {
         "Output_JumpHostPublicIPAddress": {
