@@ -113,9 +113,7 @@
         "updateScheduleTimeZone": "Europe/Berlin",
         "updateScheduleWeekDays": [ "Thursday" ],
         "ScheduleTimeZone": "W. Europe Standard Time",
-        "publicNetworkAccess": "Disabled",
-        "privateEndpointName": "[concat(parameters('prefix'), '-PrivateEndpoint')]",
-        "privateLinkEndpoint": "[concat(parameters('prefix'), '-PrivateLinkEndpoint')]",
+        "publicNetworkAccess": "Disabled",        
         "SecurityPricing": [
             {
                 "Name": "SqlServers",
@@ -1114,18 +1112,18 @@
                         }
                     },
                     {
-                        "condition": "[and(equals(variables('publicNetworkAccess'),'Disabled'), equals(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.mode, 1))]",
+                        "condition": "[and(equals(variables('publicNetworkAccess'),'Disabled'), equals(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.mode, 1))]",
                         "apiVersion": "2018-05-01",
-                        "name": "[concat('deployResourceGroup-', variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]",
+                        "name": "[concat('deployResourceGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]",
                         "type": "Microsoft.Resources/deployments",
-                        "subscriptionId": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
-                        "location": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
+                        "subscriptionId": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
+                        "location": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
                         "dependsOn": [
                             "[parameters('name')]"
                         ],
                         "copy": {
                             "name": "privateendpointscopy",
-                            "count": "[length(variables('privateEndpoints'))]"
+                            "count": "[length(parameters('privateEndpoints'))]"
                         },
                         "properties": {
                             "mode": "Incremental",
@@ -1136,8 +1134,8 @@
                                     {
                                         "type": "Microsoft.Resources/resourceGroups",
                                         "apiVersion": "2021-04-01",
-                                        "name": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
-                                        "location": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
+                                        "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
+                                        "location": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.location]",
                                         "properties": {}
                                     }
                                 ]
@@ -1146,13 +1144,13 @@
                     },
                     {
                         "apiVersion": "2017-05-10",
-                        "name": "[concat('deployPrivateEndpoint-', variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
+                        "name": "[concat('deployPrivateEndpoint-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
                         "type": "Microsoft.Resources/deployments",
-                        "resourceGroup": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
-                        "subscriptionId": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
+                        "resourceGroup": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name]",
+                        "subscriptionId": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.subscription.subscriptionId]",
                         "dependsOn": [
                             "[parameters('name')]",
-                            "[concat('deployResourceGroup-', variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]"
+                            "[concat('deployResourceGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.resourceGroup.value.name)]"
                         ],
                         "condition": "[equals(parameters('publicNetworkAccess'),'Disabled')]",
                         "copy": {
@@ -1167,19 +1165,19 @@
                                 "resources": [
                                     {
                                         "location": "[variables('monitorLocation')]",
-                                        "name": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
+                                        "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
                                         "type": "Microsoft.Network/privateEndpoints",
                                         "apiVersion": "2020-03-01",
                                         "properties": {
                                             "subnet": {
-                                                "id": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id]"
+                                                "id": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id]"
                                             },
                                             "privateLinkServiceConnections": [
                                                 {
-                                                    "name": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
+                                                    "name": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name]",
                                                     "properties": {
                                                         "privateLinkServiceId": "[concat(parameters('resourceGroupId'), '/providers/microsoft.monitor/accounts/', parameters('name'))]",
-                                                        "groupIds": "[variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.privateLinkServiceConnections[0].properties.groupIds]"
+                                                        "groupIds": "[parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.privateLinkServiceConnections[0].properties.groupIds]"
                                                     }
                                                 }
                                             ]
@@ -1192,17 +1190,17 @@
                     },
                     {
                         "apiVersion": "2017-05-10",
-                        "name": "[concat('deployDnsZoneGroup-', variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
+                        "name": "[concat('deployDnsZoneGroup-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name)]",
                         "type": "Microsoft.Resources/deployments",
-                        "resourceGroup": "[split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4]]",
-                        "subscriptionId": "[split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2]]",
+                        "resourceGroup": "[split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4]]",
+                        "subscriptionId": "[split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2]]",
                         "dependsOn": [
-                            "[concat('Microsoft.Resources/deployments/', concat('deployPrivateEndpoint-', variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name))]"
+                            "[concat('Microsoft.Resources/deployments/', concat('deployPrivateEndpoint-', parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name))]"
                         ],
-                        "condition": "[and(equals(variables('publicNetworkAccess'),'Disabled'), variables('privateEndpoints')[copyIndex()].privateDnsZoneConfiguration.integrateWithPrivateDnsZone)]",
+                        "condition": "[and(equals(parameters('publicNetworkAccess'),'Disabled'), parameters('privateEndpoints')[copyIndex()].privateDnsZoneConfiguration.integrateWithPrivateDnsZone)]",
                         "copy": {
                             "name": "privateendpointdnscopy",
-                            "count": "[length(variables('privateEndpoints'))]"
+                            "count": "[length(parameters('privateEndpoints'))]"
                         },
                         "properties": {
                             "mode": "Incremental",
@@ -1221,14 +1219,14 @@
                                     {
                                         "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
                                         "apiVersion": "2018-09-01",
-                                        "name": "[concat('privatelink.',variables('monitorLocation'),variables('privateLinkEndpoint'), '/', uniquestring(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id, ''))]",
+                                        "name": "[concat('privatelink.',variables('monitorLocation'),parameters('privateLinkEndpoint'), '/', uniquestring(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id, ''))]",
                                         "location": "global",
                                         "dependsOn": [
-                                            "[concat('privatelink.',variables('monitorLocation'),variables('privateLinkEndpoint'))]"
+                                            "[concat('privatelink.',variables('monitorLocation'),parameters('privateLinkEndpoint'))]"
                                         ],
                                         "properties": {
                                             "virtualNetwork": {
-                                                "id": "[concat('/subscriptions/',split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourceGroups/',split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4],'/providers/Microsoft.Network/virtualNetworks/',split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[8])]"
+                                                "id": "[concat('/subscriptions/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourceGroups/',split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4],'/providers/Microsoft.Network/virtualNetworks/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[8])]"
                                             },
                                             "registrationEnabled": false
                                         }
@@ -1236,17 +1234,17 @@
                                     {
                                         "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
                                         "apiVersion": "2020-03-01",
-                                        "name": "[concat(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name, '/default')]",
+                                        "name": "[concat(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.name, '/default')]",
                                         "location": "[variables('monitorLocation')]",
                                         "dependsOn": [
-                                            "[concat('privatelink.',variables('monitorLocation'),variables('privateLinkEndpoint'))]"
+                                            "[concat('privatelink.',variables('monitorLocation'),parameters('privateLinkEndpoint'))]"
                                         ],
                                         "properties": {
                                             "privateDnsZoneConfigs": [
                                                 {
-                                                    "name": "[concat('privatelink.',variables('monitorLocation'),variables('privateLinkEndpoint'))]",
+                                                    "name": "[concat('privatelink.',variables('monitorLocation'),parameters('privateLinkEndpoint'))]",
                                                     "properties": {
-                                                        "privateDnsZoneId": "[concat('/subscriptions/',split(variables('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourcegroups/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4], '/providers/Microsoft.Network/privateDnsZones/privatelink.',variables('location'),variables('privateLinkEndpoint'))]"
+                                                        "privateDnsZoneId": "[concat('/subscriptions/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[2],'/resourcegroups/',split(parameters('privateEndpoints')[copyIndex()].privateEndpointConfiguration.privateEndpoint.properties.subnet.id,'/')[4], '/providers/Microsoft.Network/privateDnsZones/privatelink.',variables('location'),variables('privateLinkEndpoint'))]"
                                                     }
                                                 }
                                             ]
