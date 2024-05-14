@@ -60,11 +60,18 @@
             "type": "bool",
             "defaultValue": false
         },
+        "tagsByResource": {
+            "type": "object"
+        },
+        "resourceGroupId": {
+            "type": "string"
+        },
         "publicNetworkAccess": {
             "type": "string"
         },
         "privateEndpoints": {
-            "type": "array"
+            "type": "array",
+            "defaultValue": []            
         },
         "privateLinkEndpoint": {
             "type": "string"
